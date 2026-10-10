@@ -18,3 +18,7 @@ venv/
 .vscode/
 .DS_Store
 Thumbs.db
+
+
+# C++ build artifacts
+/controller/cpp/build/
