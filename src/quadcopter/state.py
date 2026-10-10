@@ -1,7 +1,7 @@
 import numpy as np
 
 
-STATE_SIZE = 13
+STATE_SIZE = 17
 
 
 def pack_state(
@@ -9,32 +9,22 @@ def pack_state(
     velocity_body,
     quaternion_nb,
     angular_velocity_body,
+    rotor_speeds_rad_s,
 ):
-    """Combine the quadcopter variables into a 13-element state vector."""
-
-    position_ned = np.asarray(position_ned, dtype=float)
-    velocity_body = np.asarray(velocity_body, dtype=float)
-    quaternion_nb = np.asarray(quaternion_nb, dtype=float)
-    angular_velocity_body = np.asarray(
-        angular_velocity_body, dtype=float
-    )
-
-    expected_shapes = {
-        "position_ned": (3,),
-        "velocity_body": (3,),
-        "quaternion_nb": (4,),
-        "angular_velocity_body": (3,),
-    }
+    """Combine vehicle and motor variables into a 17-element state."""
 
     variables = {
-        "position_ned": position_ned,
-        "velocity_body": velocity_body,
-        "quaternion_nb": quaternion_nb,
-        "angular_velocity_body": angular_velocity_body,
+        "position_ned": (position_ned, (3,)),
+        "velocity_body": (velocity_body, (3,)),
+        "quaternion_nb": (quaternion_nb, (4,)),
+        "angular_velocity_body": (angular_velocity_body, (3,)),
+        "rotor_speeds_rad_s": (rotor_speeds_rad_s, (4,)),
     }
 
-    for name, expected_shape in expected_shapes.items():
-        value = variables[name]
+    arrays = {}
+
+    for name, (value, expected_shape) in variables.items():
+        value = np.asarray(value, dtype=float)
 
         if value.shape != expected_shape:
             raise ValueError(
@@ -46,16 +36,19 @@ def pack_state(
                 f"{name} must contain only finite values."
             )
 
+        arrays[name] = value
+
     return np.concatenate([
-        position_ned,
-        velocity_body,
-        quaternion_nb,
-        angular_velocity_body,
+        arrays["position_ned"],
+        arrays["velocity_body"],
+        arrays["quaternion_nb"],
+        arrays["angular_velocity_body"],
+        arrays["rotor_speeds_rad_s"],
     ])
 
 
 def unpack_state(state):
-    """Extract the variables from a 13-element state vector."""
+    """Extract vehicle and motor variables from a 17-element state."""
 
     state = np.asarray(state, dtype=float)
 
@@ -74,4 +67,5 @@ def unpack_state(state):
         "velocity_body": state[3:6],
         "quaternion_nb": state[6:10],
         "angular_velocity_body": state[10:13],
+        "rotor_speeds_rad_s": state[13:17],
     }

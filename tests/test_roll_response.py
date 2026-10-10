@@ -1,9 +1,11 @@
+
 import numpy as np
 
-from config.vehicle import IXX_KG_M2, ROTOR_OFFSET_M
+from config.vehicle import IXX_KG_M2
 from src.quadcopter.rotors import rotor_forces_and_torques
 from src.quadcopter.dynamics import rigid_body_derivatives
 from src.quadcopter.simulator import simulate
+
 
 def test_left_side_thrust_difference_produces_negative_roll_torque():
     # Rotors 3 and 4 are on the left side (positive body y).
@@ -32,24 +34,26 @@ def test_positive_roll_torque_produces_positive_roll_acceleration():
         atol=1e-12,
     )
 
-def test_constant_roll_torque_produces_negative_roll_rate():
-    initial_state = np.zeros(13)
-    initial_state[6] = 1.0
 
+def test_constant_roll_torque_produces_negative_roll_rate():
     hover_speed = np.sqrt(
         1.2 * 9.80665 / (4.0 * 8.0e-6)
     )
 
-    rotor_speeds = np.array([
+    commanded_rotor_speeds = np.array([
         hover_speed,
         hover_speed,
         hover_speed + 20.0,
         hover_speed + 20.0,
     ])
 
+    initial_state = np.zeros(17)
+    initial_state[6] = 1.0
+    initial_state[13:17] = hover_speed
+
     times, states = simulate(
         initial_state=initial_state,
-        rotor_speeds_rad_s=rotor_speeds,
+        commanded_rotor_speeds_rad_s=commanded_rotor_speeds,
         duration_s=0.2,
         dt=0.01,
     )
@@ -60,23 +64,24 @@ def test_constant_roll_torque_produces_negative_roll_rate():
 
 
 def test_roll_simulation_preserves_quaternion_norm():
-    initial_state = np.zeros(13)
-    initial_state[6] = 1.0
-
     hover_speed = np.sqrt(
         1.2 * 9.80665 / (4.0 * 8.0e-6)
     )
 
-    rotor_speeds = np.array([
+    commanded_rotor_speeds = np.array([
         hover_speed,
         hover_speed,
         hover_speed + 20.0,
         hover_speed + 20.0,
     ])
 
+    initial_state = np.zeros(17)
+    initial_state[6] = 1.0
+    initial_state[13:17] = hover_speed
+
     _, states = simulate(
         initial_state=initial_state,
-        rotor_speeds_rad_s=rotor_speeds,
+        commanded_rotor_speeds_rad_s=commanded_rotor_speeds,
         duration_s=0.2,
         dt=0.01,
     )
@@ -86,5 +91,7 @@ def test_roll_simulation_preserves_quaternion_norm():
     )
 
     np.testing.assert_allclose(
-        quaternion_norms, 1.0, atol=1e-12
+        quaternion_norms,
+        1.0,
+        atol=1e-12,
     )
