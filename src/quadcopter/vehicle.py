@@ -1,4 +1,3 @@
-
 import numpy as np
 
 from src.quadcopter.dynamics import rigid_body_derivatives
