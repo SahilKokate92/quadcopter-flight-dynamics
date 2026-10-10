@@ -15,9 +15,7 @@ from config.vehicle import (
 from src.quadcopter.simulator import simulate
 
 
-# --------------------------------------------------
-# 1. Vehicle and hover parameters
-# --------------------------------------------------
+# Vehicle and hover parameters
 
 hover_speed = np.sqrt(
     MASS_KG * GRAVITY_M_S2
@@ -29,9 +27,7 @@ initial_state[6] = 1.0  # Identity quaternion
 initial_state[13:17] = hover_speed
 
 
-# --------------------------------------------------
-# 2. Motor command: temporary vertical thrust step
-# --------------------------------------------------
+# Motor command: temporary vertical thrust step
 
 def motor_command(t):
     if 0.5 <= t < 1.5:
@@ -40,9 +36,7 @@ def motor_command(t):
     return np.full(4, hover_speed)
 
 
-# --------------------------------------------------
-# 3. Run simulation
-# --------------------------------------------------
+# Run simulation
 
 times, states = simulate(
     initial_state=initial_state,
@@ -52,10 +46,7 @@ times, states = simulate(
     command_function=motor_command,
 )
 
-
-# --------------------------------------------------
-# 4. Extract response
-# --------------------------------------------------
+# Extract response
 
 altitude_up = -states[:, 2]
 vertical_velocity_up = -states[:, 5]
@@ -77,9 +68,7 @@ ideal_vertical_acceleration = (
 ) / MASS_KG
 
 
-# --------------------------------------------------
-# 5. Print validation metrics
-# --------------------------------------------------
+# Print validation metrics
 
 print(f"Hover speed: {hover_speed:.6f} rad/s")
 print(f"Maximum altitude gain: {np.max(altitude_up):.4f} m")
@@ -101,10 +90,7 @@ for sample_time in [0.5, 1.0, 1.5, 2.0, 3.0]:
 print("\nFinal rotor speeds (rad/s):")
 print(rotor_speeds[-1])
 
-
-# --------------------------------------------------
-# 6. Plot the response
-# --------------------------------------------------
+#  Plot the response
 
 fig, axes = plt.subplots(4, 1, figsize=(10, 12), sharex=True)
 

@@ -16,10 +16,7 @@ from config.vehicle import (
 )
 from src.quadcopter.simulator import simulate
 
-
-# ==================================================
-# 1. INITIALIZE VEHICLE AT HOVER
-# ==================================================
+# INITIALIZE VEHICLE AT HOVER
 
 hover_speed = np.sqrt(
     MASS_KG * GRAVITY_M_S2
@@ -31,10 +28,7 @@ initial_state[6] = 1.0
 initial_state[13:17] = hover_speed
 
 
-# ==================================================
-# 2. DEFINE MOTOR COMMAND
-# ==================================================
-
+# DEFINE MOTOR COMMAND
 
 def motor_command(t):
     commands = np.full(4, hover_speed)
@@ -49,9 +43,7 @@ def motor_command(t):
     return commands
 
 
-# ==================================================
-# 3. RUN SIMULATION
-# ==================================================
+# RUN SIMULATION
 
 times, states = simulate(
     initial_state=initial_state,
@@ -61,10 +53,7 @@ times, states = simulate(
     command_function=motor_command,
 )
 
-
-# ==================================================
-# 4. EXTRACT SIMULATED STATES
-# ==================================================
+# EXTRACT SIMULATED STATES
 
 angular_rates = states[:, 10:13]
 
@@ -87,9 +76,7 @@ roll_acceleration_numerical = (
 )
 
 
-# ==================================================
-# 5. CALCULATE ROTOR TORQUES
-# ==================================================
+# ALCULATE ROTOR TORQUES
 
 # Use the configured rotor arm length.
 a = ROTOR_OFFSET_M
@@ -143,9 +130,7 @@ torque_body = total_arm_torque.copy()
 torque_body[:, 2] += reaction_torque_z
 
 
-# ==================================================
-# 6. FULL RIGID-BODY ROTATIONAL EQUATION
-# ==================================================
+# FULL RIGID-BODY ROTATIONAL EQUATION
 
 inertia = np.asarray(
     INERTIA_KG_M2,
@@ -173,10 +158,7 @@ roll_acceleration_expected = (
     angular_accelerations_expected[:, 0]
 )
 
-
-# ==================================================
-# 7. PRINT VALIDATION RESULTS
-# ==================================================
+# PRINT VALIDATION RESULTS
 
 print("=" * 55)
 print("QUADCOPTER ROLL DYNAMICS VALIDATION")
@@ -211,10 +193,7 @@ for sample_time in [0.5, 0.7, 1.0, 1.2, 2.0]:
         f"{roll_acceleration_expected[index]:+.6f} rad/s^2"
     )
 
-
-# ==================================================
-# 8. PLOT RESULTS
-# ==================================================
+# PLOT RESULTS
 
 fig, axes = plt.subplots(
     3,
