@@ -33,3 +33,24 @@ add_test(
     NAME roll_rate_controller_test
     COMMAND test_roll_rate_controller
 )
+
+add_executable(simulate_roll_rate
+    src/simulate_roll_rate.cpp
+)
+
+target_link_libraries(simulate_roll_rate
+    PRIVATE roll_rate_controller
+)
+
+add_executable(test_roll_rate_simulation
+    tests/test_roll_rate_simulation.cpp
+)
+
+target_link_libraries(test_roll_rate_simulation
+    PRIVATE roll_rate_controller
+)
+
+add_test(
+    NAME roll_rate_simulation_test
+    COMMAND test_roll_rate_simulation
+)
