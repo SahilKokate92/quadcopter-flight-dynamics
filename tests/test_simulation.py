@@ -57,3 +57,33 @@ def test_state_derivative_rejects_invalid_command_shape():
             state=state,
             commanded_rotor_speeds_rad_s=np.array([500.0, 500.0]),
         )
+
+
+def test_time_varying_motor_command_increases_motor_speed():
+    import numpy as np
+
+    from src.quadcopter.simulator import simulate
+
+    hover_speed = np.sqrt(
+        1.2 * 9.80665 / (4.0 * 8.0e-6)
+    )
+
+    initial_state = np.zeros(17)
+    initial_state[6] = 1.0
+    initial_state[13:17] = hover_speed
+
+    def motor_command(t):
+        if t < 0.1:
+            return np.full(4, hover_speed)
+
+        return np.full(4, hover_speed + 100.0)
+
+    _, states = simulate(
+        initial_state=initial_state,
+        commanded_rotor_speeds_rad_s=np.full(4, hover_speed),
+        duration_s=0.3,
+        dt=0.001,
+        command_function=motor_command,
+    )
+
+    assert np.all(states[-1, 13:17] > hover_speed)
