@@ -98,3 +98,12 @@ add_test(
     NAME rk4_integrator_test
     COMMAND test_rk4_integrator
 )
+
+
+add_executable(print_rigid_body_trajectory
+    src/print_rigid_body_trajectory.cpp
+)
+
+target_link_libraries(print_rigid_body_trajectory
+    PRIVATE rigid_body_dynamics
+)
