@@ -1,6 +1,8 @@
 #include "quadcopter/rk4_integrator.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
@@ -66,7 +68,7 @@ QuadcopterState make_state(
 void test_free_fall() {
     TestSystem system;
 
-    const QuadcopterState initial = make_state(
+    QuadcopterState state = make_state(
         {0.0, 0.0, 0.0},
         {0.0, 0.0, 0.0},
         {1.0, 0.0, 0.0, 0.0},
@@ -74,22 +76,21 @@ void test_free_fall() {
         {0.0, 0.0, 0.0, 0.0}
     );
 
-    // Zero rotor commands and speeds produce no thrust.
     const RotorSpeeds commands{0.0, 0.0, 0.0, 0.0};
 
-    const double dt = 0.01;
-    const int steps = 100;
-    QuadcopterState state = initial;
+    constexpr double dt = 0.01;
+    constexpr int steps = 100;
 
     for (int i = 0; i < steps; ++i) {
         state = system.integrator.step(state, commands, dt);
     }
 
-    const double elapsed_time = dt * steps;
-    const double expected_velocity =
-        9.80665 * elapsed_time;
+    constexpr double elapsed_time = dt * steps;
+    constexpr double gravity = 9.80665;
+
+    const double expected_velocity = gravity * elapsed_time;
     const double expected_position =
-        0.5 * 9.80665 * elapsed_time * elapsed_time;
+        0.5 * gravity * elapsed_time * elapsed_time;
 
     require_near(
         state.rigid_body.velocity_body_m_s[2],
@@ -111,25 +112,23 @@ void test_constant_yaw_rate() {
 
     constexpr double yaw_rate = 0.5;
 
-    // Equal rotor speeds generate zero net thrust and yaw reaction torque.
-    const RotorSpeeds hoverless_speeds{
+    const RotorSpeeds constant_speeds{
         500.0, 500.0, 500.0, 500.0
     };
 
-    const QuadcopterState initial = make_state(
+    QuadcopterState state = make_state(
         {0.0, 0.0, 0.0},
         {0.0, 0.0, 0.0},
         {1.0, 0.0, 0.0, 0.0},
         {0.0, 0.0, yaw_rate},
-        hoverless_speeds
+        constant_speeds
     );
 
-    const double dt = 0.001;
-    const int steps = 1000;
-    QuadcopterState state = initial;
+    constexpr double dt = 0.001;
+    constexpr int steps = 1000;
 
     for (int i = 0; i < steps; ++i) {
-        state = system.integrator.step(state, hoverless_speeds, dt);
+        state = system.integrator.step(state, constant_speeds, dt);
     }
 
     const double total_angle = yaw_rate * dt * steps;
@@ -149,6 +148,7 @@ void test_constant_yaw_rate() {
     );
 
     double norm_squared = 0.0;
+
     for (double component : state.rigid_body.quaternion_nb) {
         norm_squared += component * component;
     }
@@ -164,7 +164,7 @@ void test_constant_yaw_rate() {
 void test_motor_speed_integration() {
     TestSystem system;
 
-    const QuadcopterState initial = make_state(
+    QuadcopterState state = make_state(
         {0.0, 0.0, 0.0},
         {0.0, 0.0, 0.0},
         {1.0, 0.0, 0.0, 0.0},
@@ -173,12 +173,11 @@ void test_motor_speed_integration() {
     );
 
     const RotorSpeeds commands{400.0, 400.0, 400.0, 400.0};
+
     constexpr double tau = 0.04;
     constexpr double duration = 0.1;
     constexpr double dt = 0.001;
     constexpr int steps = 100;
-
-    QuadcopterState state = initial;
 
     for (int i = 0; i < steps; ++i) {
         state = system.integrator.step(state, commands, dt);
@@ -197,6 +196,253 @@ void test_motor_speed_integration() {
     }
 }
 
+void test_hover_equilibrium() {
+    TestSystem system;
+
+    constexpr double mass = 1.2;
+    constexpr double gravity = 9.80665;
+    constexpr double thrust_coefficient = 8.0e-6;
+
+    const double hover_speed = std::sqrt(
+        (mass * gravity) / (4.0 * thrust_coefficient)
+    );
+
+    const RotorSpeeds hover_speeds{
+        hover_speed, hover_speed, hover_speed, hover_speed
+    };
+
+    QuadcopterState state = make_state(
+        {0.0, 0.0, 0.0},
+        {0.0, 0.0, 0.0},
+        {1.0, 0.0, 0.0, 0.0},
+        {0.0, 0.0, 0.0},
+        hover_speeds
+    );
+
+    constexpr double dt = 0.001;
+    constexpr int steps = 1000;
+
+    double max_position_drift = 0.0;
+    double max_velocity_drift = 0.0;
+    double max_angular_rate_drift = 0.0;
+    double max_rotor_speed_drift = 0.0;
+    double max_quaternion_drift = 0.0;
+
+    for (int step = 0; step < steps; ++step) {
+        state = system.integrator.step(state, hover_speeds, dt);
+
+        for (std::size_t i = 0; i < 3; ++i) {
+            max_position_drift = std::max(
+                max_position_drift,
+                std::abs(state.rigid_body.position_ned_m[i])
+            );
+
+            max_velocity_drift = std::max(
+                max_velocity_drift,
+                std::abs(state.rigid_body.velocity_body_m_s[i])
+            );
+
+            max_angular_rate_drift = std::max(
+                max_angular_rate_drift,
+                std::abs(
+                    state.rigid_body.angular_velocity_body_rad_s[i]
+                )
+            );
+        }
+
+        for (std::size_t i = 0; i < 4; ++i) {
+            max_rotor_speed_drift = std::max(
+                max_rotor_speed_drift,
+                std::abs(state.rotor_speeds_rad_s[i] - hover_speed)
+            );
+        }
+
+        const Quaternion& q = state.rigid_body.quaternion_nb;
+
+        max_quaternion_drift = std::max(
+            max_quaternion_drift,
+            std::max(
+                std::abs(q[0] - 1.0),
+                std::max(
+                    std::abs(q[1]),
+                    std::max(std::abs(q[2]), std::abs(q[3]))
+                )
+            )
+        );
+    }
+
+    require_near(
+        max_position_drift, 0.0, 1e-8,
+        "Maximum hover position drift"
+    );
+
+    require_near(
+        max_velocity_drift, 0.0, 1e-8,
+        "Maximum hover velocity drift"
+    );
+
+    require_near(
+        max_angular_rate_drift, 0.0, 1e-8,
+        "Maximum hover angular-rate drift"
+    );
+
+    require_near(
+        max_rotor_speed_drift, 0.0, 1e-8,
+        "Maximum hover rotor-speed drift"
+    );
+
+    require_near(
+        max_quaternion_drift, 0.0, 1e-8,
+        "Maximum hover quaternion drift"
+    );
+
+    std::cout << "Hover speed: " << hover_speed
+              << " rad/s per rotor\n";
+    std::cout << "Maximum position drift: "
+              << max_position_drift << " m\n";
+    std::cout << "Maximum velocity drift: "
+              << max_velocity_drift << " m/s\n";
+    std::cout << "Maximum angular-rate drift: "
+              << max_angular_rate_drift << " rad/s\n";
+    std::cout << "Maximum rotor-speed drift: "
+              << max_rotor_speed_drift << " rad/s\n";
+    std::cout << "Maximum quaternion component drift: "
+              << max_quaternion_drift << '\n';
+}
+
+void test_known_angular_accelerations() {
+    TestSystem system;
+
+    // Rotor 1 is faster than the other three rotors.
+    // Commands equal actual speeds so motor lag does not affect
+    // the instantaneous rigid-body angular acceleration.
+    const RotorSpeeds rotor_speeds{
+        600.0, 500.0, 500.0, 500.0
+    };
+
+    const QuadcopterState state = make_state(
+        {0.0, 0.0, 0.0},
+        {0.0, 0.0, 0.0},
+        {1.0, 0.0, 0.0, 0.0},
+        {0.0, 0.0, 0.0},
+        rotor_speeds
+    );
+
+    const auto derivatives =
+        system.dynamics.derivatives(state, rotor_speeds);
+
+    const auto& angular_acceleration =
+        derivatives.rigid_body.angular_velocity_dot_body_rad_s2;
+
+    constexpr double expected_roll_acceleration = 8.296719552;
+    constexpr double expected_pitch_acceleration = 8.296719552;
+    constexpr double expected_yaw_acceleration = 0.66;
+
+    require_near(
+        angular_acceleration[0],
+        expected_roll_acceleration,
+        kTolerance,
+        "Known roll angular acceleration"
+    );
+
+    require_near(
+        angular_acceleration[1],
+        expected_pitch_acceleration,
+        kTolerance,
+        "Known pitch angular acceleration"
+    );
+
+    require_near(
+        angular_acceleration[2],
+        expected_yaw_acceleration,
+        kTolerance,
+        "Known yaw angular acceleration"
+    );
+
+    std::cout << "Known angular accelerations:\n";
+    std::cout << "  Roll: " << angular_acceleration[0]
+              << " rad/s^2\n";
+    std::cout << "  Pitch: " << angular_acceleration[1]
+              << " rad/s^2\n";
+    std::cout << "  Yaw: " << angular_acceleration[2]
+              << " rad/s^2\n";
+}
+
+void test_asymmetric_rotor_command_response() {
+    TestSystem system;
+
+    constexpr double mass = 1.2;
+    constexpr double gravity = 9.80665;
+    constexpr double thrust_coefficient = 8.0e-6;
+
+    const double hover_speed = std::sqrt(
+        (mass * gravity) / (4.0 * thrust_coefficient)
+    );
+
+    const RotorSpeeds initial_speeds{
+        hover_speed, hover_speed, hover_speed, hover_speed
+    };
+
+    const QuadcopterState initial = make_state(
+        {0.0, 0.0, 0.0},
+        {0.0, 0.0, 0.0},
+        {1.0, 0.0, 0.0, 0.0},
+        {0.0, 0.0, 0.0},
+        initial_speeds
+    );
+
+    // Command rotor 1 faster; the motor responds with its first-order lag.
+    const RotorSpeeds commands{
+        hover_speed + 50.0,
+        hover_speed,
+        hover_speed,
+        hover_speed
+    };
+
+    // Current rotor speeds are still equal at this instant.
+    const auto initial_derivatives =
+        system.dynamics.derivatives(initial, commands);
+
+    for (double value :
+         initial_derivatives.rigid_body.angular_velocity_dot_body_rad_s2) {
+        require_near(
+            value, 0.0, 1e-8,
+            "Initial angular acceleration at equal rotor speeds"
+        );
+    }
+
+    constexpr double dt = 0.001;
+    constexpr int steps = 100;
+
+    QuadcopterState state = initial;
+
+    for (int i = 0; i < steps; ++i) {
+        state = system.integrator.step(state, commands, dt);
+    }
+
+    // Under the configured rotor layout, the speed imbalance should
+    // produce positive roll and pitch angular rates.
+    if (!(state.rigid_body.angular_velocity_body_rad_s[0] > 0.0)) {
+        throw std::runtime_error(
+            "Asymmetric rotor command did not produce positive roll rate"
+        );
+    }
+
+    if (!(state.rigid_body.angular_velocity_body_rad_s[1] > 0.0)) {
+        throw std::runtime_error(
+            "Asymmetric rotor command did not produce positive pitch rate"
+        );
+    }
+
+    std::cout << "Asymmetric rotor command response:\n";
+    std::cout << "  Final roll rate: "
+              << state.rigid_body.angular_velocity_body_rad_s[0]
+              << " rad/s\n";
+    std::cout << "  Final pitch rate: "
+              << state.rigid_body.angular_velocity_body_rad_s[1]
+              << " rad/s\n";
+}
+
 }  // namespace
 
 int main() {
@@ -204,6 +450,9 @@ int main() {
         test_free_fall();
         test_constant_yaw_rate();
         test_motor_speed_integration();
+        test_hover_equilibrium();
+        test_known_angular_accelerations();
+        test_asymmetric_rotor_command_response();
 
         std::cout << "All 17-state RK4 integrator tests passed.\n";
         return EXIT_SUCCESS;
