@@ -1,58 +1,105 @@
-<div align="center">
+# Technical Documentation
 
-# 🚁 Quadcopter Flight Dynamics Simulator
+This directory contains the technical documentation for the Quadcopter Flight Dynamics project.
 
-### Technical Documentation
+The documents cover the numerical model, C++ tests, open-loop simulation workflow, and the assumptions and limitations of the current implementation.
 
-*Six-degree-of-freedom rigid-body model · quaternion attitude · first-order rotor dynamics · RK4 integration*
+## Contents
 
-![Language](https://img.shields.io/badge/language-Python-3776AB?logo=python&logoColor=white)
-![Model](https://img.shields.io/badge/model-6--DOF%20nonlinear-blue)
-![Integrator](https://img.shields.io/badge/integrator-RK4-informational)
-![Frames](https://img.shields.io/badge/frames-NED%20%2F%20FRD-success)
-![Status](https://img.shields.io/badge/validation-open--loop%20checks%20only-orange)
-
-</div>
+1. [Document map](#document-map)
+2. [Documentation](#documentation)
+3. [Quick Start](#quick-start)
+4. [Documentation Status](#documentation-status)
 
 ---
 
-This folder contains technical documentation for the **Quadcopter Flight Dynamics Simulator**.
+## Document map
 
-## 📑 Table of Contents
+| Area | Document | Scope |
+|---|---|---|
+| Model | [Mathematical Model](mathematical_model.md) | Kinematics, dynamics, rotor and motor models, and integration. |
+| Model | [Numerical Model](NUMERICAL_MODEL.md) | C++ implementation of the 17-state model. |
+| Model | [Coordinate Frames](coordinate_frames.md) | NED and FRD conventions, quaternion convention, state indexing, rotor ordering. |
+| Model | [Software Architecture](architecture.md) | Directories, state flow, state vector, and design boundaries. |
+| Verification | [C++ Test Suite](CPP_TESTS.md) | Objectives, reference cases, and acceptance criteria for each C++ test. |
+| Verification | [Python–C++ Derivative Validation](python_cpp_derivative_validation.md) | Instantaneous derivative comparison between the Python and C++ implementations. |
+| Verification | [Validation and Assumptions](VALIDATION_AND_ASSUMPTIONS.md) | Conventions, assumptions, numerical limitations, and validation scope. |
+| Simulation | [Open-Loop Simulation](OPEN_LOOP_SIMULATION.md) | Asymmetric rotor simulation, logging, and plots. |
+| Simulation | [Example Scripts](examples.md) | Python example and validation scripts. |
 
-1. [Documents](#-documents)
-2. [Documentation Map](#-documentation-map)
-3. [Scope](#-scope)
+## Documentation
 
----
+### 1. [Numerical Model](NUMERICAL_MODEL.md)
 
-## 📚 Documents
+Describes the mathematical model implemented in C++, including:
 
-| # | Document | Description |
-|:-:|---|---|
-| 1 | [🏗️ Architecture](architecture.md) | Software modules and data flow. |
-| 2 | [📐 Mathematical Model](mathematical_model.md) | Equations implemented by the current model. |
-| 3 | [🧭 Coordinate Frames and State](coordinate_frames.md) | Frame conventions, quaternion ordering, and state vector. |
-| 4 | [✅ Validation](validation.md) | Current checks, observed results, and limitations. |
-| 5 | [▶️ Examples](examples.md) | How to run the example scripts. |
+- The 17-state vector.
+- NED inertial and FRD body coordinate conventions.
+- Quaternion attitude representation.
+- Translational and rotational dynamics.
+- Rotor thrust and reaction torque.
+- Motor-speed dynamics.
+- RK4 numerical integration.
 
-## 🗺️ Documentation Map
+### 2. [C++ Test Suite](CPP_TESTS.md)
 
-```mermaid
-flowchart LR
-    R[README]:::root --> A[Architecture]
-    R --> M[Mathematical Model]
-    R --> C[Coordinate Frames and State]
-    R --> V[Validation]
-    R --> E[Examples]
-    C -. conventions .-> M
-    A -. state vector .-> C
-    M -. equations checked by .-> V
-    E -. scripts used in .-> V
-    classDef root fill:#1f6feb,color:#fff,stroke:#1f6feb;
+Documents the C++ test suite, its objectives, numerical reference cases, expected behavior, and acceptance criteria.
+
+Use this document to understand what the current tests check and how to execute the test suite.
+
+### 3. [Open-Loop Simulation](OPEN_LOOP_SIMULATION.md)
+
+Describes the asymmetric rotor simulation, including:
+
+- Initial conditions and model parameters.
+- Rotor-speed commands.
+- Integration settings.
+- CSV state logging.
+- Python visualization and generated PNG plots.
+- Interpretation and limitations of the simulation results.
+
+### 4. [Validation and Assumptions](VALIDATION_AND_ASSUMPTIONS.md)
+
+Describes the model's coordinate conventions, assumptions, numerical limitations, and current validation scope.
+
+It also outlines additional work needed to establish stronger confidence in the model, including time-step convergence, reference-model comparison, parameter verification, and experimental validation.
+
+## Quick Start
+
+From the repository root, configure and build the C++ project:
+
+```bash
+cmake -S controller/cpp -B controller/cpp/build
+cmake --build controller/cpp/build
 ```
 
-## 🎯 Scope
+Run the registered tests:
+
+```bash
+ctest --test-dir controller/cpp/build --output-on-failure
+```
+
+Build and run the open-loop example:
+
+```bash
+cmake --build controller/cpp/build --target open_loop_asymmetric
+```
+
+On Windows:
+
+```powershell
+.\controller\cpp\build\open_loop_asymmetric.exe
+```
+
+For visualization:
+
+```bash
+python controller/cpp/examples/visualize_open_loop.py
+```
+
+See [Open-Loop Simulation](OPEN_LOOP_SIMULATION.md) for the full procedure and output details.
+
+## Documentation Status
 
 > [!IMPORTANT]
-> These documents describe the **current Python implementation** and the **tests performed so far**. They do **not** claim validation against measured flight data. Vehicle and propulsion parameters are **provisional illustrative values**, not measured hardware data.
+> These documents describe the current implementation and selected numerical checks. Passing tests indicates that the tested assertions are satisfied; it does not independently establish physical accuracy or experimental validation.

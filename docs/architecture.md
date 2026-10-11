@@ -1,8 +1,8 @@
-# 🏗️ Software Architecture
+# Software Architecture
 
-[⬅ Back to documentation index](README.md)
+[Documentation index](README.md)
 
-## 📑 Contents
+## Contents
 
 1. [Overview](#1-overview)
 2. [Main directories](#2-main-directories)

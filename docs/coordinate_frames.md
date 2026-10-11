@@ -1,8 +1,8 @@
-# 🧭 Coordinate Frames and State Definition
+# Coordinate Frames and State Definition
 
-[⬅ Back to documentation index](README.md)
+[Documentation index](README.md)
 
-## 📑 Contents
+## Contents
 
 1. [Coordinate conventions](#1-coordinate-conventions)
 2. [Rotation matrix](#2-rotation-matrix)

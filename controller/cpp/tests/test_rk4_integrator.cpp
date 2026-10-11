@@ -369,8 +369,6 @@ void test_known_angular_accelerations() {
 }
 
 void test_asymmetric_rotor_command_response() {
-    TestSystem system;
-
     constexpr double mass = 1.2;
     constexpr double gravity = 9.80665;
     constexpr double thrust_coefficient = 8.0e-6;
@@ -379,68 +377,67 @@ void test_asymmetric_rotor_command_response() {
         (mass * gravity) / (4.0 * thrust_coefficient)
     );
 
-    const RotorSpeeds initial_speeds{
+    const RotorSpeeds hover_speeds{
         hover_speed, hover_speed, hover_speed, hover_speed
     };
 
-    const QuadcopterState initial = make_state(
-        {0.0, 0.0, 0.0},
-        {0.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0, 0.0},
-        {0.0, 0.0, 0.0},
-        initial_speeds
-    );
-
-    // Command rotor 1 faster; the motor responds with its first-order lag.
-    const RotorSpeeds commands{
-        hover_speed + 50.0,
-        hover_speed,
-        hover_speed,
-        hover_speed
+    // Expected angular-rate signs [p, q, r] for each rotor.
+    // Rotor layout and spin directions are defined in RotorDynamics.
+    const int expected_signs[4][3] = {
+        { 1,  1,  1},  // Rotor 1: front-right
+        { 1, -1, -1},  // Rotor 2: rear-right
+        {-1, -1,  1},  // Rotor 3: rear-left
+        {-1,  1, -1}   // Rotor 4: front-left
     };
-
-    // Current rotor speeds are still equal at this instant.
-    const auto initial_derivatives =
-        system.dynamics.derivatives(initial, commands);
-
-    for (double value :
-         initial_derivatives.rigid_body.angular_velocity_dot_body_rad_s2) {
-        require_near(
-            value, 0.0, 1e-8,
-            "Initial angular acceleration at equal rotor speeds"
-        );
-    }
 
     constexpr double dt = 0.001;
     constexpr int steps = 100;
 
-    QuadcopterState state = initial;
+    for (std::size_t rotor = 0; rotor < 4; ++rotor) {
+        TestSystem system;
 
-    for (int i = 0; i < steps; ++i) {
-        state = system.integrator.step(state, commands, dt);
-    }
-
-    // Under the configured rotor layout, the speed imbalance should
-    // produce positive roll and pitch angular rates.
-    if (!(state.rigid_body.angular_velocity_body_rad_s[0] > 0.0)) {
-        throw std::runtime_error(
-            "Asymmetric rotor command did not produce positive roll rate"
+        const QuadcopterState initial = make_state(
+            {0.0, 0.0, 0.0},
+            {0.0, 0.0, 0.0},
+            {1.0, 0.0, 0.0, 0.0},
+            {0.0, 0.0, 0.0},
+            hover_speeds
         );
-    }
 
-    if (!(state.rigid_body.angular_velocity_body_rad_s[1] > 0.0)) {
-        throw std::runtime_error(
-            "Asymmetric rotor command did not produce positive pitch rate"
-        );
-    }
+        RotorSpeeds commands = hover_speeds;
+        commands[rotor] = hover_speed + 50.0;
 
-    std::cout << "Asymmetric rotor command response:\n";
-    std::cout << "  Final roll rate: "
-              << state.rigid_body.angular_velocity_body_rad_s[0]
-              << " rad/s\n";
-    std::cout << "  Final pitch rate: "
-              << state.rigid_body.angular_velocity_body_rad_s[1]
-              << " rad/s\n";
+        QuadcopterState state = initial;
+
+        for (int step = 0; step < steps; ++step) {
+            state = system.integrator.step(state, commands, dt);
+        }
+
+        const auto& rates =
+            state.rigid_body.angular_velocity_body_rad_s;
+
+        for (std::size_t axis = 0; axis < 3; ++axis) {
+            const int expected = expected_signs[rotor][axis];
+
+            if (expected * rates[axis] <= 0.0) {
+                std::cerr
+                    << "Rotor " << (rotor + 1)
+                    << ", axis " << axis
+                    << ": expected sign " << expected
+                    << ", got " << rates[axis] << " rad/s\n";
+
+                throw std::runtime_error(
+                    "Unexpected full-vehicle angular response"
+                );
+            }
+        }
+
+        std::cout << "Rotor " << (rotor + 1)
+                  << " response [p, q, r]: "
+                  << rates[0] << ", "
+                  << rates[1] << ", "
+                  << rates[2] << " rad/s\n";
+    }
 }
 
 }  // namespace

@@ -1,8 +1,8 @@
-# ▶️ Example Scripts
+# Example Scripts
 
-[⬅ Back to documentation index](README.md)
+[Documentation index](README.md)
 
-## 📑 Contents
+## Contents
 
 1. [Running the examples](#1-running-the-examples)
 2. [Current examples](#2-current-examples)

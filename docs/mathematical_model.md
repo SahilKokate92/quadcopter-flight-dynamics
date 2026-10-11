@@ -1,8 +1,8 @@
-# 📐 Mathematical Model
+# Mathematical Model
 
-[⬅ Back to documentation index](README.md)
+[Documentation index](README.md)
 
-## 📑 Contents
+## Contents
 
 1. [Assumptions and parameter status](#1-assumptions-and-parameter-status)
 2. [Position kinematics](#2-position-kinematics)

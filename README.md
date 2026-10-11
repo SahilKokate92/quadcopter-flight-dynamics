@@ -1,135 +1,284 @@
-# Quadcopter Flight Dynamics Simulator
+# \# Quadcopter Flight Dynamics
 
-A Python-based nonlinear quadcopter flight dynamics simulator under development. The project implements quaternion-based attitude representation, six-degree-of-freedom (6-DOF) rigid-body dynamics, and a four-rotor propulsion model.
+# 
 
----
+# A nonlinear quadcopter flight-dynamics simulation project featuring a C++ 6-DOF rigid-body model, four-rotor dynamics, motor response, quaternion-based attitude representation, and numerical integration using fourth-order Runge–Kutta (RK4).
 
-## Table of Contents
+# 
 
-- [Current Features](#current-features)
-- [Mathematical Model](#mathematical-model)
-- [Coordinate Conventions](#coordinate-conventions)
-- [Project Structure](#project-structure)
-- [Testing](#testing)
-- [Development Roadmap](#development-roadmap)
-- [Parameters](#parameters)
-- [Status](#status)
+# The project focuses on developing, testing, and analyzing the mathematical model of a quadcopter.
 
----
+# 
 
-## Current Features
+# \## Features
 
-- NED inertial frame and FRD body frame conventions
-- Scalar-first quaternion operations
-- Body-to-NED rotation matrix
-- 6-DOF rigid-body translational and rotational dynamics
-- Four-rotor thrust and reaction-torque model
-- Vehicle model combining propulsion and rigid-body dynamics
-- Automated unit tests using pytest
+# 
 
----
+# \- Nonlinear 6-DOF rigid-body dynamics.
 
-## Mathematical Model
+# \- Quaternion-based attitude representation.
 
-The current rigid-body model uses the following equations.
+# \- Four-rotor thrust and reaction-torque model.
 
-### Position kinematics
+# \- First-order motor-speed dynamics.
 
-$$
-\dot{\mathbf{p}}_n = R_{NB}\,\mathbf{v}_b
-$$
+# \- RK4 numerical integration.
 
-### Translational dynamics
+# \- C++ unit tests and numerical validation cases.
 
-$$
-\dot{\mathbf{v}}_b = \frac{\mathbf{F}_b}{m} + R_{NB}^{T}\,\mathbf{g}_n - \boldsymbol{\omega}_b \times \mathbf{v}_b
-$$
+# \- Open-loop asymmetric rotor simulation.
 
-### Rotational dynamics
+# \- CSV state logging and Python-based visualization.
 
-$$
-I\,\dot{\boldsymbol{\omega}}_b = \boldsymbol{\tau}_b - \boldsymbol{\omega}_b \times \left(I\,\boldsymbol{\omega}_b\right)
-$$
+# 
 
-### Quaternion kinematics
+# \## Project Structure
 
-$$
-\dot{q}_{NB} = \frac{1}{2}\, q_{NB} \otimes \begin{bmatrix} 0 \\ \boldsymbol{\omega}_b \end{bmatrix}
-$$
+# 
 
-### Rotor thrust model
+# ```text
 
-$$
-T_i = k_f\,\Omega_i^2
-$$
+# quadcopter-flight-dynamics/
 
-### Symbols
+# ├── controller/
 
-| Symbol | Description |
-| :--- | :--- |
-| $m$ | Vehicle mass |
-| $I$ | Body-frame inertia matrix |
-| $R_{NB}$ | Body-to-NED rotation matrix |
-| $\mathbf{F}_b$ | Total body-frame force |
-| $\boldsymbol{\tau}_b$ | Total body-frame torque |
-| $\Omega_i$ | Rotor angular speed |
+# │   └── cpp/
 
----
+# │       ├── include/
 
-## Coordinate Conventions
+# │       ├── src/
 
-| Item | Convention |
-| :--- | :--- |
-| Inertial frame | North-East-Down (NED) |
-| Body frame | Forward-Right-Down (FRD) |
-| Quaternion ordering | $[q_w, q_x, q_y, q_z]$ |
-| Gravity in NED | $[0, 0, g]^T$ |
-| Rotor thrust direction | Negative body $z$-axis |
+# │       ├── tests/
 
----
+# │       ├── examples/
 
-## Project Structure
+# │       └── CMakeLists.txt
 
-| Path | Description |
-| :--- | :--- |
-| `config/vehicle.py` | Vehicle and propulsion parameters |
-| `src/quadcopter/frames.py` | Quaternion operations and coordinate transformations |
-| `src/quadcopter/dynamics.py` | Rigid-body equations of motion |
-| `src/quadcopter/rotors.py` | Rotor thrust and torque calculations |
-| `src/quadcopter/vehicle.py` | Integrated vehicle derivative calculations |
-| `tests/` | Automated unit tests |
+# ├── docs/
 
----
+# │   ├── README.md
 
-## Testing
+# │   ├── CPP\_TESTS.md
 
-Run the test suite from the project root:
+# │   ├── NUMERICAL\_MODEL.md
 
-```bash
-python -m pytest -v
-```
+# │   ├── OPEN\_LOOP\_SIMULATION.md
 
-The current development checkpoint has 20 passing tests.
+# │   └── VALIDATION\_AND\_ASSUMPTIONS.md
 
----
+# ├── README.md
 
-## Development Roadmap
+# └── ...
 
-- [ ] Implement and validate an RK4 numerical integrator
-- [ ] Add motor dynamics
-- [ ] Build a time-domain simulation loop
-- [ ] Validate open-loop flight responses
-- [ ] Add trajectory plots and 3D visualization
-- [ ] Develop and evaluate flight-control algorithms
+# ```
 
----
+# 
 
-## Parameters
+# The Python reference simulator and other existing project files are maintained separately from the C++ implementation.
 
-Vehicle and propulsion values are provisional illustrative parameters, not measured hardware data.
+# 
 
----
+# \## Requirements
 
-## Status
+# 
 
-The simulator is under active development. The current version provides foundational mathematical models and unit tests; complete time-domain simulation and flight-response validation remain future work.
+# \- C++17-compatible compiler
+
+# \- CMake
+
+# \- Python 3
+
+# \- Python packages: NumPy, pandas, and Matplotlib for the visualization script
+
+# 
+
+# \## Build the C++ Project
+
+# 
+
+# Run the following commands from the repository root.
+
+# 
+
+# \### 1. Configure
+
+# 
+
+# ```bash
+
+# cmake -S controller/cpp -B controller/cpp/build
+
+# ```
+
+# 
+
+# \### 2. Build
+
+# 
+
+# ```bash
+
+# cmake --build controller/cpp/build
+
+# ```
+
+# 
+
+# To build only the open-loop example:
+
+# 
+
+# ```bash
+
+# cmake --build controller/cpp/build --target open\_loop\_asymmetric
+
+# ```
+
+# 
+
+# \## Run the Open-Loop Example
+
+# 
+
+# Run the executable from the repository root.
+
+# 
+
+# \*\*Windows:\*\*
+
+# 
+
+# ```powershell
+
+# .\\controller\\cpp\\build\\open\_loop\_asymmetric.exe
+
+# ```
+
+# 
+
+# \*\*Linux:\*\*
+
+# 
+
+# ```bash
+
+# ./controller/cpp/build/open\_loop\_asymmetric
+
+# ```
+
+# 
+
+# The example runs a 15-second open-loop simulation with asymmetric rotor-speed commands. It records the vehicle state history to:
+
+# 
+
+# ```text
+
+# controller/cpp/examples/open\_loop\_asymmetric\_state.csv
+
+# ```
+
+# 
+
+# The exact executable location may differ depending on the CMake generator and build configuration.
+
+# 
+
+# \## Visualize the Results
+
+# 
+
+# Install the Python dependencies if necessary:
+
+# 
+
+# ```bash
+
+# python -m pip install numpy pandas matplotlib
+
+# ```
+
+# 
+
+# Generate the plots:
+
+# 
+
+# ```bash
+
+# python controller/cpp/examples/visualize\_open\_loop.py
+
+# ```
+
+# 
+
+# The script generates PNG figures in:
+
+# 
+
+# ```text
+
+# controller/cpp/examples/results/
+
+# ```
+
+# 
+
+# The plots show the 3D trajectory, full-state time histories, body angular rates, and rotor-speed responses.
+
+# 
+
+# \## Run the Tests
+
+# 
+
+# Build the project, then run the registered C++ tests:
+
+# 
+
+# ```bash
+
+# ctest --test-dir controller/cpp/build --output-on-failure
+
+# ```
+
+# 
+
+# The test suite covers individual model components, selected analytical comparisons, and numerical-stability checks.
+
+# 
+
+# \## Documentation
+
+# 
+
+# Detailed technical documentation is available in the \[`docs/`](docs/README.md) directory.
+
+# 
+
+# \- \[C++ Test Suite](docs/CPP\_TESTS.md)
+
+# \- \[Numerical Model](docs/NUMERICAL\_MODEL.md)
+
+# \- \[Open-Loop Simulation](docs/OPEN\_LOOP\_SIMULATION.md)
+
+# \- \[Validation and Assumptions](docs/VALIDATION\_AND\_ASSUMPTIONS.md)
+
+# 
+
+# \## Scope
+
+# 
+
+# This is an engineering simulation and development project. Numerical tests and simulation results do not, by themselves, establish agreement with experimental flight data.
+
+# 
+
+# \## License
+
+# 
+
+# See the repository's license file for terms of use.
+
+
+
