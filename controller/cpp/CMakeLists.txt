@@ -19,6 +19,10 @@ add_library(roll_rate_controller
 add_library(rigid_body_dynamics
     src/rigid_body_dynamics.cpp
     src/rk4_integrator.cpp
+    src/rotor_dynamics.cpp
+    src/motor_dynamics.cpp
+    src/quadcopter_dynamics.cpp
+    
 )
 
 target_include_directories(rigid_body_dynamics
@@ -106,4 +110,30 @@ add_executable(print_rigid_body_trajectory
 
 target_link_libraries(print_rigid_body_trajectory
     PRIVATE rigid_body_dynamics
+)
+
+add_executable(test_rotor_dynamics
+    tests/test_rotor_dynamics.cpp
+)
+
+target_link_libraries(test_rotor_dynamics
+    PRIVATE rigid_body_dynamics
+)
+
+add_test(
+    NAME rotor_dynamics_test
+    COMMAND test_rotor_dynamics
+)
+
+add_executable(test_motor_dynamics
+    tests/test_motor_dynamics.cpp
+)
+
+target_link_libraries(test_motor_dynamics
+    PRIVATE rigid_body_dynamics
+)
+
+add_test(
+    NAME motor_dynamics_test
+    COMMAND test_motor_dynamics
 )

@@ -25,111 +25,131 @@ void require_near(
     }
 }
 
-void test_free_fall() {
-    const RigidBodyParameters parameters{
-        1.2,
-        9.80665,
-        {0.015, 0.015, 0.025}
+struct TestSystem {
+    RigidBodyDynamics rigid_body{
+        RigidBodyParameters{
+            1.2, 9.80665, {0.015, 0.015, 0.025}
+        }
     };
 
-    const RigidBodyDynamics dynamics(parameters);
-    const Rk4Integrator integrator(dynamics);
+    RotorDynamics rotors{
+        RotorParameters{
+            8.0e-6,
+            1.5e-7,
+            1200.0,
+            0.141421356,
+            {1.0, -1.0, 1.0, -1.0}
+        }
+    };
 
-    const RigidBodyState initial{
+    MotorDynamics motors{MotorParameters{0.04, 1200.0}};
+
+    QuadcopterDynamics dynamics{rigid_body, rotors, motors};
+    Rk4Integrator integrator{dynamics};
+};
+
+QuadcopterState make_state(
+    Vec3 position,
+    Vec3 velocity,
+    Quaternion quaternion,
+    Vec3 angular_velocity,
+    RotorSpeeds rotor_speeds
+) {
+    return {
+        RigidBodyState{
+            position, velocity, quaternion, angular_velocity
+        },
+        rotor_speeds
+    };
+}
+
+void test_free_fall() {
+    TestSystem system;
+
+    const QuadcopterState initial = make_state(
         {0.0, 0.0, 0.0},
         {0.0, 0.0, 0.0},
         {1.0, 0.0, 0.0, 0.0},
-        {0.0, 0.0, 0.0}
-    };
-
-    const BodyWrench wrench{
         {0.0, 0.0, 0.0},
-        {0.0, 0.0, 0.0}
-    };
+        {0.0, 0.0, 0.0, 0.0}
+    );
+
+    // Zero rotor commands and speeds produce no thrust.
+    const RotorSpeeds commands{0.0, 0.0, 0.0, 0.0};
 
     const double dt = 0.01;
     const int steps = 100;
-
-    RigidBodyState state = initial;
+    QuadcopterState state = initial;
 
     for (int i = 0; i < steps; ++i) {
-        state = integrator.step(state, wrench, dt);
+        state = system.integrator.step(state, commands, dt);
     }
 
     const double elapsed_time = dt * steps;
-
-    // In NED coordinates, positive z points down.
-    const double expected_down_velocity =
-        parameters.gravity_m_s2 * elapsed_time;
-
-    const double expected_down_position =
-        0.5 * parameters.gravity_m_s2
-        * elapsed_time * elapsed_time;
+    const double expected_velocity =
+        9.80665 * elapsed_time;
+    const double expected_position =
+        0.5 * 9.80665 * elapsed_time * elapsed_time;
 
     require_near(
-        state.velocity_body_m_s[2],
-        expected_down_velocity,
+        state.rigid_body.velocity_body_m_s[2],
+        expected_velocity,
         kTolerance,
         "Free-fall down velocity"
     );
 
     require_near(
-        state.position_ned_m[2],
-        expected_down_position,
+        state.rigid_body.position_ned_m[2],
+        expected_position,
         kTolerance,
         "Free-fall down position"
     );
 }
 
 void test_constant_yaw_rate() {
-    const RigidBodyParameters parameters{
-        1.2,
-        9.80665,
-        {0.015, 0.015, 0.025}
+    TestSystem system;
+
+    constexpr double yaw_rate = 0.5;
+
+    // Equal rotor speeds generate zero net thrust and yaw reaction torque.
+    const RotorSpeeds hoverless_speeds{
+        500.0, 500.0, 500.0, 500.0
     };
 
-    const RigidBodyDynamics dynamics(parameters);
-    const Rk4Integrator integrator(dynamics);
-
-    const double yaw_rate = 0.5;
-    const RigidBodyState initial{
+    const QuadcopterState initial = make_state(
         {0.0, 0.0, 0.0},
         {0.0, 0.0, 0.0},
         {1.0, 0.0, 0.0, 0.0},
-        {0.0, 0.0, yaw_rate}
-    };
-
-    const BodyWrench wrench{
-        {0.0, 0.0, -parameters.mass_kg * parameters.gravity_m_s2},
-        {0.0, 0.0, 0.0}
-    };
+        {0.0, 0.0, yaw_rate},
+        hoverless_speeds
+    );
 
     const double dt = 0.001;
     const int steps = 1000;
-    RigidBodyState state = initial;
+    QuadcopterState state = initial;
 
     for (int i = 0; i < steps; ++i) {
-        state = integrator.step(state, wrench, dt);
+        state = system.integrator.step(state, hoverless_speeds, dt);
     }
 
     const double total_angle = yaw_rate * dt * steps;
 
     require_near(
-        state.quaternion_nb[0],
+        state.rigid_body.quaternion_nb[0],
         std::cos(total_angle / 2.0),
         1e-8,
         "Yaw quaternion scalar"
     );
 
     require_near(
-        state.quaternion_nb[3],
+        state.rigid_body.quaternion_nb[3],
         std::sin(total_angle / 2.0),
         1e-8,
         "Yaw quaternion z component"
     );
 
     double norm_squared = 0.0;
-    for (double component : state.quaternion_nb) {
+    for (double component : state.rigid_body.quaternion_nb) {
         norm_squared += component * component;
     }
 
@@ -141,14 +161,51 @@ void test_constant_yaw_rate() {
     );
 }
 
+void test_motor_speed_integration() {
+    TestSystem system;
+
+    const QuadcopterState initial = make_state(
+        {0.0, 0.0, 0.0},
+        {0.0, 0.0, 0.0},
+        {1.0, 0.0, 0.0, 0.0},
+        {0.0, 0.0, 0.0},
+        {0.0, 0.0, 0.0, 0.0}
+    );
+
+    const RotorSpeeds commands{400.0, 400.0, 400.0, 400.0};
+    constexpr double tau = 0.04;
+    constexpr double duration = 0.1;
+    constexpr double dt = 0.001;
+    constexpr int steps = 100;
+
+    QuadcopterState state = initial;
+
+    for (int i = 0; i < steps; ++i) {
+        state = system.integrator.step(state, commands, dt);
+    }
+
+    const double expected_speed =
+        400.0 * (1.0 - std::exp(-duration / tau));
+
+    for (double speed : state.rotor_speeds_rad_s) {
+        require_near(
+            speed,
+            expected_speed,
+            1e-6,
+            "Motor first-order response"
+        );
+    }
+}
+
 }  // namespace
 
 int main() {
     try {
         test_free_fall();
         test_constant_yaw_rate();
+        test_motor_speed_integration();
 
-        std::cout << "All RK4 integrator tests passed.\n";
+        std::cout << "All 17-state RK4 integrator tests passed.\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
         std::cerr << "RK4 test failure: " << error.what() << '\n';
