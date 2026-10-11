@@ -16,6 +16,15 @@ add_library(roll_rate_controller
     src/roll_rate_controller.cpp
 )
 
+add_library(rigid_body_dynamics
+    src/rigid_body_dynamics.cpp
+)
+
+target_include_directories(rigid_body_dynamics
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
 target_include_directories(roll_rate_controller
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -53,4 +62,25 @@ target_link_libraries(test_roll_rate_simulation
 add_test(
     NAME roll_rate_simulation_test
     COMMAND test_roll_rate_simulation
+)
+
+add_executable(test_rigid_body_dynamics
+    tests/test_rigid_body_dynamics.cpp
+)
+
+target_link_libraries(test_rigid_body_dynamics
+    PRIVATE rigid_body_dynamics
+)
+
+add_test(
+    NAME rigid_body_dynamics_test
+    COMMAND test_rigid_body_dynamics
+)
+
+add_executable(compare_rigid_body_derivatives
+    src/print_rigid_body_derivatives.cpp
+)
+
+target_link_libraries(compare_rigid_body_derivatives
+    PRIVATE rigid_body_dynamics
 )
