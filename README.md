@@ -1,5 +1,4 @@
 # \# Quadcopter Flight Dynamics
-
 # 
 
 # A nonlinear quadcopter flight-dynamics simulation project featuring a C++ 6-DOF rigid-body model, four-rotor dynamics, motor response, quaternion-based attitude representation, and numerical integration using fourth-order Runge–Kutta (RK4).
