@@ -18,6 +18,7 @@ add_library(roll_rate_controller
 
 add_library(rigid_body_dynamics
     src/rigid_body_dynamics.cpp
+    src/rk4_integrator.cpp
 )
 
 target_include_directories(rigid_body_dynamics
@@ -83,4 +84,17 @@ add_executable(compare_rigid_body_derivatives
 
 target_link_libraries(compare_rigid_body_derivatives
     PRIVATE rigid_body_dynamics
+)
+
+add_executable(test_rk4_integrator
+    tests/test_rk4_integrator.cpp
+)
+
+target_link_libraries(test_rk4_integrator
+    PRIVATE rigid_body_dynamics
+)
+
+add_test(
+    NAME rk4_integrator_test
+    COMMAND test_rk4_integrator
 )
