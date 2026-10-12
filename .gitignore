@@ -1,4 +1,3 @@
-
 # Python cache
 __pycache__/
 *.py[cod]
@@ -16,9 +15,65 @@ venv/
 
 # Editor and operating system files
 .vscode/
+.idea/
 .DS_Store
 Thumbs.db
-
+desktop.ini
 
 # C++ build artifacts
 /controller/cpp/build/
+build/
+cmake-build-*/
+out/
+Debug/
+Release/
+*.obj
+*.o
+*.pdb
+*.ilk
+*.lib
+*.exp
+
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.a
+
+# MATLAB / Simulink cache and temporary files
+slprj/
+*.slxc
+*_autosave.slx
+*.asv
+*.autosave
+*.mat~
+*.m~
+*.mlx~
+*.fig~
+*.tmp
+
+# MATLAB / Simulink generated code
+codegen/
+*_ert_rtw/
+*_grt_rtw/
+*_rtw/
+
+# Compiled MATLAB MEX files
+*.mex*
+
+# CMake and Visual Studio build artifacts
+/controller/cpp/build-mingw/
+/controller/cpp/build-msvc/
+
+# MATLAB / Simulink generated files
+**/slprj/
+*.slxc
+*_autosave.slx
+*.asv
+*.autosave
+*.m~
+*.mat~
+*.mlx~
+
+# Compiled MATLAB MEX files
+*.mex*
